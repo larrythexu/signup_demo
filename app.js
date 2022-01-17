@@ -6,8 +6,6 @@ const https = require('https');
 app.use(express.static('public')); //to keep a STATIC directory (access for html & css)
 require('dotenv').config(); //to hide sensitive info
 
-console.log(process.env);
-
 app.get("/", (req, res) => {
     res.sendFile(__dirname + '/signup.html')
 })
@@ -54,6 +52,42 @@ app.post("/", (req, res) => {
 
 app.post('/failure', (req, res) => {
     res.redirect('/');
+})
+
+app.post('/success', (req, res) => {
+    res.redirect('/mailinfo');
+})
+
+app.get('/mailinfo', (req, res) => {
+    const url = process.env.URL_MEMBERS
+    const options = {
+        method: 'GET',
+        auth: process.env.API_KEY,
+    }
+
+    https.get(url, options, (response) => {
+        var listData = ''
+
+        response.on("data", (data) => {
+            listData += data;
+        })
+
+        response.on("end", () => {
+            var parsedData = JSON.parse(listData);
+
+            res.writeHead(200,{"Content-Type" : "text/html"});
+            res.write("<h2>List of member names:</h2>")
+
+            var nameList = "<ol>"
+            for (let i = 0; i < parsedData.members.length; i++) {
+                nameList += "<li>" + parsedData.members[i].full_name + "</li>";
+            }
+            nameList += "</ol>"
+
+            res.write(nameList);
+            res.send();
+        })
+    })
 })
 
 app.listen(process.env.PORT || 3000, () => { //process.env.PORT is a dynamic port - for heroku to choose
